@@ -28,7 +28,10 @@
             height: 500px;
             position: relative; /* Importante para posicionar los 'targets' */
             border: 2px solid #45a29e;
-            background-image: url('https://via.placeholder.com/900x500?text=IMAGEN+DEL+SISTEMA+SOLAR+(Placeholder)'); /* Imagen del sistema solar */
+            /* *** IMAGEN DEL SISTEMA SOLAR REEMPLAZADA *** La imagen debe ser de alta resolución y mostrar los planetas de izquierda a derecha 
+               para que las posiciones de los targets funcionen correctamente.
+            */
+            background-image: url('http://googleusercontent.com/image_collection/image_retrieval/8931998030388505233_0'); 
             background-size: cover;
             background-position: center;
             margin-bottom: 20px;
@@ -44,8 +47,7 @@
             z-index: 10; /* Asegura que estén por encima de la imagen */
         }
 
-        /* Posicionamiento de los targets (ajustar según la imagen final) */
-        /* Estos valores son un ejemplo para simular un orden realista */
+        /* Posicionamiento de los targets (Ajustado para una imagen típica de izquierda a derecha) */
         #target-mercurio { top: 250px; left: 180px; }
         #target-venus { top: 250px; left: 250px; }
         #target-tierra { top: 250px; left: 320px; }
@@ -82,12 +84,11 @@
         }
 
         .correct {
-            background-color: #008000; /* Verde */
+            background-color: #008000; /* Color Verde */
             color: white;
             border: 1px solid #00ff00;
             cursor: default !important;
             box-shadow: none;
-            /* El transform: none; y position: absolute se manejarán por JS para fijarlo */
         }
     </style>
 </head>
@@ -105,7 +106,7 @@
         <div class="planet-target" id="target-saturno" data-planet="Saturno"></div>
         <div class="planet-target" id="target-urano" data-planet="Urano"></div>
         <div class="planet-target" id="target-neptuno" data-planet="Neptuno"></div>
-        </div>
+    </div>
 
     <div id="labels-container">
         <div class="planet-label" draggable="true" data-planet="Mercurio">Mercurio</div>
@@ -130,7 +131,6 @@
         document.querySelectorAll('.planet-label').forEach(label => {
             label.addEventListener('dragstart', (e) => {
                 draggedItem = label;
-                // Almacena el ID del planeta en el objeto de datos del evento para la verificación
                 e.dataTransfer.setData('text/plain', label.dataset.planet);
                 // Opcional: añade una clase para indicar que se está arrastrando
                 setTimeout(() => label.style.opacity = '0.5', 0);
@@ -155,20 +155,18 @@
             // Lógica al soltar (drop)
             target.addEventListener('drop', (e) => {
                 e.preventDefault();
-                if (!draggedItem) return; // Si no hay un elemento siendo arrastrado, salir
+                if (!draggedItem) return;
 
                 const droppedPlanet = draggedItem.dataset.planet;
                 const targetPlanet = target.dataset.planet;
 
                 // **Verificación de acierto**
                 if (droppedPlanet === targetPlanet) {
-                    // Acierto:
                     handleCorrectDrop(draggedItem, target);
                 } else {
-                    // Fallo: El elemento regresará a su posición original
-                    // Esto se maneja implícitamente ya que no se hace nada
+                    // Fallo: El elemento regresa a su posición original (ya que no se hace nada)
                     draggedItem.style.opacity = '1'; // Quitar la opacidad de arrastre
-                    alert(`Incorrecto. ¡Inténtalo de nuevo!`);
+                    alert(`¡${droppedPlanet} no va ahí! Inténtalo de nuevo.`);
                 }
             });
         });

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego Drag & Drop del Sistema Solar</title>
+    <style>
+        /* Estilos CSS */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #0b0c10;
+            color: #c5c6c7;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #score-board {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #66fcf1;
+        }
+
+        #game-container {
+            width: 900px;
+            height: 500px;
+            position: relative; /* Importante para posicionar los 'targets' */
+            border: 2px solid #45a29e;
+            background-image: url('https://via.placeholder.com/900x500?text=IMAGEN+DEL+SISTEMA+SOLAR+(Placeholder)'); /* Imagen del sistema solar */
+            background-size: cover;
+            background-position: center;
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(102, 252, 241, 0.5);
+        }
+
+        .planet-target {
+            position: absolute;
+            width: 40px; /* Tamaño del área donde soltar */
+            height: 40px;
+            /* Puedes descomentar esto para ver las áreas de destino durante el desarrollo */
+            /* border: 1px dashed red; */
+            z-index: 10; /* Asegura que estén por encima de la imagen */
+        }
+
+        /* Posicionamiento de los targets (ajustar según la imagen final) */
+        /* Estos valores son un ejemplo para simular un orden realista */
+        #target-mercurio { top: 250px; left: 180px; }
+        #target-venus { top: 250px; left: 250px; }
+        #target-tierra { top: 250px; left: 320px; }
+        #target-marte { top: 250px; left: 390px; }
+        #target-jupiter { top: 250px; left: 500px; } /* Más grande, más lejos */
+        #target-saturno { top: 250px; left: 630px; }
+        #target-urano { top: 250px; left: 740px; }
+        #target-neptuno { top: 250px; left: 830px; }
+
+        #labels-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            min-height: 50px;
+            padding: 10px;
+            border-top: 2px solid #45a29e;
+            width: 900px;
+        }
+
+        .planet-label {
+            padding: 8px 15px;
+            background-color: #1f2833;
+            border: 1px solid #66fcf1;
+            border-radius: 5px;
+            cursor: grab;
+            user-select: none;
+            transition: transform 0.2s, background-color 0.2s;
+            z-index: 20; /* Asegura que estén por encima de todo al arrastrar */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .planet-label:active {
+            cursor: grabbing;
+        }
+
+        .correct {
+            background-color: #008000; /* Verde */
+            color: white;
+            border: 1px solid #00ff00;
+            cursor: default !important;
+            box-shadow: none;
+            /* El transform: none; y position: absolute se manejarán por JS para fijarlo */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌎 Sistema Solar: Arrastra y Suelta</h1>
+    <div id="score-board">Aciertos: <span id="hits-count">0</span> / 8</div>
+
+    <div id="game-container">
+        <div class="planet-target" id="target-mercurio" data-planet="Mercurio"></div>
+        <div class="planet-target" id="target-venus" data-planet="Venus"></div>
+        <div class="planet-target" id="target-tierra" data-planet="Tierra"></div>
+        <div class="planet-target" id="target-marte" data-planet="Marte"></div>
+        <div class="planet-target" id="target-jupiter" data-planet="Júpiter"></div>
+        <div class="planet-target" id="target-saturno" data-planet="Saturno"></div>
+        <div class="planet-target" id="target-urano" data-planet="Urano"></div>
+        <div class="planet-target" id="target-neptuno" data-planet="Neptuno"></div>
+        </div>
+
+    <div id="labels-container">
+        <div class="planet-label" draggable="true" data-planet="Mercurio">Mercurio</div>
+        <div class="planet-label" draggable="true" data-planet="Venus">Venus</div>
+        <div class="planet-label" draggable="true" data-planet="Tierra">Tierra</div>
+        <div class="planet-label" draggable="true" data-planet="Marte">Marte</div>
+        <div class="planet-label" draggable="true" data-planet="Júpiter">Júpiter</div>
+        <div class="planet-label" draggable="true" data-planet="Saturno">Saturno</div>
+        <div class="planet-label" draggable="true" data-planet="Urano">Urano</div>
+        <div class="planet-label" draggable="true" data-planet="Neptuno">Neptuno</div>
+    </div>
+
+    <script>
+        // Lógica de JavaScript
+        let draggedItem = null;
+        let hits = 0;
+        const hitsCountElement = document.getElementById('hits-count');
+        const labelsContainer = document.getElementById('labels-container');
+        const gameContainer = document.getElementById('game-container');
+
+        // 1. Eventos de inicio de arrastre (dragstart) en las etiquetas
+        document.querySelectorAll('.planet-label').forEach(label => {
+            label.addEventListener('dragstart', (e) => {
+                draggedItem = label;
+                // Almacena el ID del planeta en el objeto de datos del evento para la verificación
+                e.dataTransfer.setData('text/plain', label.dataset.planet);
+                // Opcional: añade una clase para indicar que se está arrastrando
+                setTimeout(() => label.style.opacity = '0.5', 0);
+            });
+
+            label.addEventListener('dragend', () => {
+                // Restablece la opacidad al finalizar el arrastre (si no fue correcto)
+                if (!label.classList.contains('correct')) {
+                    label.style.opacity = '1';
+                }
+                draggedItem = null;
+            });
+        });
+
+        // 2. Eventos de destino (Targets) en las áreas de la imagen
+        document.querySelectorAll('.planet-target').forEach(target => {
+            // Previene el comportamiento por defecto (necesario para soltar)
+            target.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            // Lógica al soltar (drop)
+            target.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (!draggedItem) return; // Si no hay un elemento siendo arrastrado, salir
+
+                const droppedPlanet = draggedItem.dataset.planet;
+                const targetPlanet = target.dataset.planet;
+
+                // **Verificación de acierto**
+                if (droppedPlanet === targetPlanet) {
+                    // Acierto:
+                    handleCorrectDrop(draggedItem, target);
+                } else {
+                    // Fallo: El elemento regresará a su posición original
+                    // Esto se maneja implícitamente ya que no se hace nada
+                    draggedItem.style.opacity = '1'; // Quitar la opacidad de arrastre
+                    alert(`Incorrecto. ¡Inténtalo de nuevo!`);
+                }
+            });
+        });
+
+        // Función para manejar la colocación correcta
+        function handleCorrectDrop(labelElement, targetElement) {
+            // 1. Fija el estilo del label a **verde** y lo hace inamovible
+            labelElement.classList.add('correct');
+            labelElement.setAttribute('draggable', 'false');
+
+            // 2. Posiciona el label sobre el target de forma absoluta en el game-container
+            const targetRect = targetElement.getBoundingClientRect();
+            const gameRect = gameContainer.getBoundingClientRect();
+
+            // Calcula la posición relativa al contenedor del juego
+            const newLeft = targetRect.left - gameRect.left + (targetRect.width / 2) - (labelElement.offsetWidth / 2);
+            const newTop = targetRect.top - gameRect.top + targetRect.height + 5; // Un poco debajo del target
+
+            labelElement.style.position = 'absolute';
+            labelElement.style.left = `${newLeft}px`;
+            labelElement.style.top = `${newTop}px`;
+
+            // 3. Mueve el label del contenedor inferior al contenedor del juego
+            gameContainer.appendChild(labelElement);
+
+            // 4. Incrementa el contador
+            hits++;
+            hitsCountElement.textContent = hits;
+
+            // 5. Opcional: Oculta el target para que no se pueda soltar otro label
+            targetElement.style.pointerEvents = 'none';
+
+            // 6. Fin del juego
+            if (hits === 8) {
+                setTimeout(() => {
+                    alert('¡Felicidades! Has completado el Sistema Solar correctamente.');
+                }, 100);
+            }
+        }
+    </script>
+
+</body>
+</html>

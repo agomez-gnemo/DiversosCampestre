@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Ahorcado Gramatical</title>
+    <style>
+        /* Estilo de Pergamino/Sepia */
+        body {
+            font-family: 'Georgia', serif;
+            background-color: #f7f3e8; /* Fondo muy claro, crema */
+            color: #584a3c; /* Tono sepia para el texto */
+            text-align: center;
+            padding: 20px;
+        }
+
+        #juego-container {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 40px;
+            border: 10px solid #dbc398; /* Borde más oscuro, marrón claro */
+            background-color: #fcf6e6; /* Color de papel más claro */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2); /* Sombra suave */
+            border-radius: 5px;
+            position: relative;
+        }
+
+        /* Simulación de textura de pergamino con un pseudo-elemento */
+        #juego-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            /* Imagen de fondo sutil (se puede usar una imagen base64 para un solo archivo) */
+            /* En este caso, usaremos un truco con CSS para simular la textura */
+            background: repeating-linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.1),
+                rgba(255, 255, 255, 0.1) 1px,
+                transparent 1px,
+                transparent 2px
+            ),
+            radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+
+        h1 {
+            color: #8c734e; /* Título en tono más oscuro */
+            border-bottom: 2px solid #8c734e;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+
+        /* Área de Ahorcado */
+        #ahorcado-canvas {
+            border: 2px solid #8c734e;
+            background-color: #fffaf0; /* Fondo del canvas */
+            margin-bottom: 20px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Palabra Oculta */
+        #palabra-oculta {
+            font-size: 3em;
+            letter-spacing: 0.8em;
+            margin: 20px 0 40px;
+            font-weight: bold;
+            color: #4b3e2f;
+            text-transform: uppercase;
+        }
+
+        /* Teclado */
+        #teclado {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .letra-btn {
+            background-color: #d8c9a8; /* Botón en tono sepia suave */
+            color: #4b3e2f;
+            border: 2px solid #8c734e;
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 4px;
+            transition: background-color 0.2s, opacity 0.2s;
+        }
+
+        .letra-btn:hover:not(.usada) {
+            background-color: #c9bda5;
+        }
+
+        .letra-btn.usada {
+            opacity: 0.5;
+            cursor: default;
+        }
+        
+        .letra-btn.acertada {
+            background-color: #a4c9a4; /* Tono verde sepia sutil */
+            border-color: #6d936d;
+        }
+
+        .letra-btn.fallida {
+            background-color: #e09b9b; /* Tono rojo sepia sutil */
+            border-color: #b36e6e;
+        }
+        
+        /* Mensajes */
+        #mensaje {
+            font-size: 1.5em;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="juego-container">
+        <h1>📜 El Ahorcado Gramatical 📜</h1>
+
+        <canvas id="ahorcado-canvas" width="200" height="250"></canvas>
+        
+        <p id="palabra-oculta">_ _ _ _ _ _ _ _</p>
+
+        <div id="teclado">
+            </div>
+
+        <div id="mensaje"></div>
+
+    </div>
+
+    <script>
+        // --- Configuración del Juego ---
+        const PALABRAS = ['sustantivo', 'adjetivo', 'verbo', 'pronombre', 'adverbio', 'preposicion', 'conjuncion', 'interjeccion', 'lexema', 'morfema'];
+        const MAX_FALLOS = 7; // El número de partes que tiene el ahorcado (horca, cabeza, cuerpo, 2 brazos, 2 piernas)
+
+        // --- Variables del Juego ---
+        let palabraSecreta = '';
+        let palabraAdivinada = [];
+        let letrasUsadas = new Set();
+        let fallos = 0;
+        let juegoTerminado = false;
+
+        // --- Referencias al DOM ---
+        const palabraOcultaEl = document.getElementById('palabra-oculta');
+        const tecladoEl = document.getElementById('teclado');
+        const mensajeEl = document.getElementById('mensaje');
+        const canvas = document.getElementById('ahorcado-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Funciones del Dibujo (Ahorcado) ---
+        function dibujarBase() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar
+            ctx.strokeStyle = '#8c734e'; // Color sepia para el dibujo
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            
+            // Base (suelo)
+            ctx.moveTo(20, 248);
+            ctx.lineTo(180, 248);
+            
+            // Palo vertical
+            ctx.moveTo(40, 248);
+            ctx.lineTo(40, 20);
+            
+            // Palo horizontal (viga)
+            ctx.lineTo(150, 20);
+            
+            // Cuerda
+            ctx.lineTo(150, 40);
+            ctx.stroke();
+        }
+
+        function dibujarParte(parte) {
+            ctx.strokeStyle = '#4b3e2f'; // Tono más oscuro para el cuerpo
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            switch (parte) {
+                case 1: // Cabeza
+                    ctx.arc(150, 60, 20, 0, Math.PI * 2, true);
+                    break;
+                case 2: // Cuerpo
+                    ctx.moveTo(150, 80);
+                    ctx.lineTo(150, 150);
+                    break;
+                case 3: // Brazo izquierdo
+                    ctx.moveTo(150, 90);
+                    ctx.lineTo(120, 130);
+                    break;
+                case 4: // Brazo derecho
+                    ctx.moveTo(150, 90);
+                    ctx.lineTo(180, 130);
+                    break;
+                case 5: // Pierna izquierda
+                    ctx.moveTo(150, 150);
+                    ctx.lineTo(120, 190);
+                    break;
+                case 6: // Pierna derecha
+                    ctx.moveTo(150, 150);
+                    ctx.lineTo(180, 190);
+                    break;
+                case 7: // Ojos (para completar el dibujo con la última vida)
+                    ctx.moveTo(145, 55);
+                    ctx.lineTo(155, 65);
+                    ctx.moveTo(155, 55);
+                    ctx.lineTo(145, 65);
+                    break;
+            }
+            ctx.stroke();
+        }
+
+        // --- Lógica del Juego ---
+        function seleccionarPalabra() {
+            const indice = Math.floor(Math.random() * PALABRAS.length);
+            return PALABRAS[indice].toUpperCase();
+        }
+
+        function iniciarJuego() {
+            // Reiniciar variables
+            palabraSecreta = seleccionarPalabra();
+            palabraAdivinada = Array(palabraSecreta.length).fill('_');
+            letrasUsadas.clear();
+            fallos = 0;
+            juegoTerminado = false;
+
+            // Actualizar DOM y Canvas
+            actualizarPalabraOculta();
+            generarTeclado();
+            dibujarBase();
+            mensajeEl.textContent = '¡Adivina la palabra gramatical! Tienes ' + MAX_FALLOS + ' intentos.';
+        }
+
+        function actualizarPalabraOculta() {
+            palabraOcultaEl.textContent = palabraAdivinada.join(' ');
+        }
+
+        function generarTeclado() {
+            tecladoEl.innerHTML = '';
+            for (let i = 65; i <= 90; i++) { // Letras A-Z
+                const letra = String.fromCharCode(i);
+                const button = document.createElement('button');
+                button.textContent = letra;
+                button.classList.add('letra-btn');
+                button.dataset.letra = letra;
+                button.addEventListener('click', () => manejarAdivinanza(letra, button));
+                tecladoEl.appendChild(button);
+            }
+            // Añadir Ñ y otras letras comunes si se desea, pero A-Z es suficiente para el ejemplo.
+            // Para el español:
+            const letrasEspeciales = ['Ñ'];
+            letrasEspeciales.forEach(letra => {
+                const button = document.createElement('button');
+                button.textContent = letra;
+                button.classList.add('letra-btn');
+                button.dataset.letra = letra;
+                button.addEventListener('click', () => manejarAdivinanza(letra, button));
+                tecladoEl.appendChild(button);
+            });
+        }
+
+        function manejarAdivinanza(letra, boton) {
+            if (juegoTerminado || letrasUsadas.has(letra)) {
+                return;
+            }
+
+            letrasUsadas.add(letra);
+            boton.classList.add('usada');
+
+            const letraEncontrada = palabraSecreta.includes(letra);
+
+            if (letraEncontrada) {
+                // Letra Correcta
+                boton.classList.add('acertada');
+                for (let i = 0; i < palabraSecreta.length; i++) {
+                    if (palabraSecreta[i] === letra) {
+                        palabraAdivinada[i] = letra;
+                    }
+                }
+                actualizarPalabraOculta();
+                verificarVictoria();
+
+            } else {
+                // Letra Incorrecta
+                boton.classList.add('fallida');
+                fallos++;
+                dibujarParte(fallos);
+                verificarDerrota();
+            }
+        }
+
+        function verificarVictoria() {
+            if (!palabraAdivinada.includes('_')) {
+                juegoTerminado = true;
+                mensajeEl.innerHTML = '🎉 **¡Felicidades! ¡Has ganado!** La palabra era: ' + palabraSecreta + '.';
+                deshabilitarTeclado();
+            }
+        }
+
+        function verificarDerrota() {
+            if (fallos >= MAX_FALLOS) {
+                juegoTerminado = true;
+                mensajeEl.innerHTML = '💀 **¡Has perdido!** La palabra secreta era: ' + palabraSecreta + '.';
+                deshabilitarTeclado();
+            } else {
+                mensajeEl.textContent = 'Letras incorrectas: ' + fallos + ' / ' + MAX_FALLOS;
+            }
+        }
+
+        function deshabilitarTeclado() {
+            document.querySelectorAll('.letra-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('usada');
+            });
+            // Opción de re-iniciar
+            const reiniciarBtn = document.createElement('button');
+            reiniciarBtn.textContent = 'Jugar de Nuevo';
+            reiniciarBtn.classList.add('letra-btn');
+            reiniciarBtn.addEventListener('click', iniciarJuego);
+            tecladoEl.appendChild(reiniciarBtn);
+        }
+
+        // Iniciar el juego al cargar la página
+        window.onload = iniciarJuego;
+    </script>
+
+</body>
+</html>

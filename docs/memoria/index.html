@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Memoria - Alimentos Saludables</title>
+    <style>
+        /* 🎨 CSS (styles.css) */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .game-container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #27ae60;
+        }
+
+        .memory-board {
+            display: grid;
+            grid-template-columns: repeat(4, 100px); /* Cuadrícula de 4x4 */
+            grid-template-rows: repeat(4, 100px);
+            gap: 10px;
+            perspective: 800px; /* Para el efecto 3D flip */
+        }
+
+        .card {
+            width: 100px;
+            height: 100px;
+            position: relative;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            border-radius: 8px;
+        }
+
+        .card.flip {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden; /* Oculta el lado de atrás por defecto */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9em;
+            font-weight: bold;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .card-back {
+            background-color: #3498db; /* Color de la carta boca abajo */
+            color: white;
+            font-size: 2em;
+        }
+
+        .card-front {
+            background-color: #ecf0f1; /* Color de la carta boca arriba */
+            color: #2c3e50;
+            transform: rotateY(180deg);
+            padding: 5px;
+            line-height: 1.1;
+        }
+
+        .card.matched .card-front {
+            background-color: #2ecc71; /* Verde para las encontradas */
+            color: white;
+            border: 3px solid #27ae60;
+        }
+
+        .game-message {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid #27ae60;
+            border-radius: 8px;
+            background-color: #e8f5e9;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .game-message button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .game-message button:hover {
+            background-color: #229954;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🥦 Juego de Memoria: Alimentos Saludables 🍎</h1>
+        <div class="stats">
+            <p>Intentos: <span id="attempts-count">0</span></p>
+        </div>
+        <div class="memory-board" id="memory-board">
+            </div>
+        <div id="game-message" class="game-message hidden">
+            <h2>¡Felicidades! 🎉</h2>
+            <p>Has encontrado todos los pares en <span id="final-attempts">0</span> intentos.</p>
+            <button onclick="location.reload()">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        // 🧠 JavaScript (script.js)
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Datos del juego (8 pares = 16 tarjetas)
+            const foods = [
+                'Manzana', 'Pera', 'Brócoli', 'Zanahoria',
+                'Salmón', 'Nueces', 'Espinaca', 'Aguacate'
+            ];
+
+            // Duplicar y mezclar las tarjetas
+            const gameCards = [...foods, ...foods];
+            shuffle(gameCards);
+
+            // Elementos del DOM
+            const board = document.getElementById('memory-board');
+            const attemptsCountSpan = document.getElementById('attempts-count');
+            const gameMessage = document.getElementById('game-message');
+            const finalAttemptsSpan = document.getElementById('final-attempts');
+
+            // Variables de estado del juego
+            let flippedCards = []; // Almacena las 2 cartas volteadas en el turno actual
+            let attempts = 0;
+            let matchesFound = 0; // Contador de pares encontrados (máximo 8)
+            let lockBoard = false; // Bloquea clics mientras las cartas se voltean
+
+            // 2. Función para mezclar (Algoritmo de Fisher-Yates)
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            // 3. Crear el tablero de juego
+            function createBoard() {
+                gameCards.forEach((food, index) => {
+                    const card = document.createElement('div');
+                    card.classList.add('card');
+                    card.dataset.food = food;
+                    card.dataset.index = index;
+
+                    // Cara frontal (el alimento)
+                    const front = document.createElement('div');
+                    front.classList.add('card-face', 'card-front');
+                    front.textContent = food;
+
+                    // Cara trasera (boca abajo)
+                    const back = document.createElement('div');
+                    back.classList.add('card-face', 'card-back');
+                    back.textContent = '?'; // Marcador de tarjeta boca abajo
+
+                    card.appendChild(front);
+                    card.appendChild(back);
+                    card.addEventListener('click', flipCard);
+                    board.appendChild(card);
+                });
+            }
+
+            // 4. Lógica para voltear una tarjeta
+            function flipCard() {
+                // Ignorar clics si el tablero está bloqueado, si ya está volteada o si ya son 2 cartas
+                if (lockBoard || this.classList.contains('flip') || flippedCards.length >= 2) {
+                    return;
+                }
+
+                this.classList.add('flip');
+                flippedCards.push(this);
+
+                // Si ya hay dos cartas volteadas
+                if (flippedCards.length === 2) {
+                    lockBoard = true; // Bloquea clics
+                    attempts++;
+                    attemptsCountSpan.textContent = attempts;
+                    checkForMatch();
+                }
+            }
+
+            // 5. Lógica para verificar si hay coincidencia
+            function checkForMatch() {
+                const [card1, card2] = flippedCards;
+                // Compara el valor 'data-food' de ambas tarjetas
+                const isMatch = card1.dataset.food === card2.dataset.food;
+
+                if (isMatch) {
+                    disableCards(card1, card2);
+                } else {
+                    // Se voltean de nuevo después de 1.5 segundos (1500ms)
+                    setTimeout(() => {
+                        unflipCards(card1, card2);
+                    }, 1500);
+                }
+            }
+
+            // 6. Tarjetas coinciden (se quedan boca arriba)
+            function disableCards(card1, card2) {
+                // Remueve el listener para que no se puedan volver a voltear
+                card1.removeEventListener('click', flipCard);
+                card2.removeEventListener('click', flipCard);
+                // Añade clase para estilo de "encontrada"
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+
+                matchesFound++;
+                resetBoard();
+
+                // Si todos los 8 pares han sido encontrados, el juego termina
+                if (matchesFound === foods.length) {
+                    endGame();
+                }
+            }
+
+            // 7. Tarjetas NO coinciden (se voltean a boca abajo)
+            function unflipCards(card1, card2) {
+                card1.classList.remove('flip');
+                card2.classList.remove('flip');
+                resetBoard();
+            }
+
+            // 8. Reiniciar el estado del tablero (para el siguiente intento)
+            function resetBoard() {
+                [flippedCards, lockBoard] = [[], false];
+            }
+
+            // 9. Lógica de fin del juego
+            function endGame() {
+                finalAttemptsSpan.textContent = attempts;
+                gameMessage.classList.remove('hidden');
+            }
+
+            // Inicializar el juego al cargar la página
+            createBoard();
+        });
+    </script>
+</body>
+</html>

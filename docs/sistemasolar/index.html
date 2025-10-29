@@ -3,210 +3,306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego Drag & Drop del Sistema Solar</title>
+    <title>Sistema Solar: Arrastra y Suelta</title>
     <style>
-        /* Estilos CSS */
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0d1a2d;
+            color: #e0e0e0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-color: #0b0c10;
-            color: #c5c6c7;
-            margin: 0;
             padding: 20px;
+            margin: 0;
+            overflow-x: hidden;
         }
 
-        #score-board {
-            font-size: 1.5em;
+        h1 {
+            color: #f7b731;
             margin-bottom: 20px;
-            color: #66fcf1;
         }
 
         #game-container {
-            width: 900px;
-            height: 500px;
-            position: relative; /* Importante para posicionar los 'targets' */
-            border: 2px solid #45a29e;
-            /* *** IMAGEN DEL SISTEMA SOLAR REEMPLAZADA *** La imagen debe ser de alta resolución y mostrar los planetas de izquierda a derecha 
-               para que las posiciones de los targets funcionen correctamente.
-            */
-            background-image: url('http://googleusercontent.com/image_collection/image_retrieval/8931998030388505233_0'); 
+            width: 100%;
+            max-width: 1200px;
+            background-color: #1a2c42;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #score-display {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            color: #a8dadc;
+        }
+
+        #solar-system-image-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px; /* Ajusta esto si la imagen es de otro tamaño */
+            height: 0; /* Truco para mantener la proporción */
+            padding-bottom: 56.25%; /* Para una imagen 16:9, ajusta según tu imagen */
+            background-image: url('sistemasolar.jpg'); /* Usamos la imagen proporcionada */
             background-size: cover;
             background-position: center;
-            margin-bottom: 20px;
-            box-shadow: 0 0 20px rgba(102, 252, 241, 0.5);
+            border-radius: 8px;
+            margin-bottom: 30px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
         }
 
-        .planet-target {
+        /* Zonas de arrastre (Drop Zones) para cada planeta */
+        .drop-zone {
             position: absolute;
-            width: 40px; /* Tamaño del área donde soltar */
-            height: 40px;
-            /* Puedes descomentar esto para ver las áreas de destino durante el desarrollo */
-            /* border: 1px dashed red; */
-            z-index: 10; /* Asegura que estén por encima de la imagen */
+            width: 5%; /* Aproximadamente el tamaño de un planeta pequeño */
+            height: 10%;
+            /* background-color: rgba(255, 255, 255, 0.1); /* Descomenta para ver las zonas */
+            border: 1px dashed rgba(255, 255, 255, 0.3); /* Descomenta para ver las zonas */
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7em;
+            color: transparent; /* Oculta el texto del placeholder */
+            text-align: center;
+            cursor: pointer;
+            z-index: 10; /* Asegura que estén encima de la imagen pero debajo de las etiquetas */
         }
 
-        /* Posicionamiento de los targets (Ajustado para una imagen típica de izquierda a derecha) */
-        #target-mercurio { top: 250px; left: 180px; }
-        #target-venus { top: 250px; left: 250px; }
-        #target-tierra { top: 250px; left: 320px; }
-        #target-marte { top: 250px; left: 390px; }
-        #target-jupiter { top: 250px; left: 500px; } /* Más grande, más lejos */
-        #target-saturno { top: 250px; left: 630px; }
-        #target-urano { top: 250px; left: 740px; }
-        #target-neptuno { top: 250px; left: 830px; }
+        /* Posiciones exactas de las zonas de arrastre (ajustar según la imagen) */
+        /* Mercurio */
+        [data-planet="Mercurio"] { top: 48%; left: 19%; width: 3%; height: 6%; }
+        /* Venus */
+        [data-planet="Venus"] { top: 46%; left: 24%; width: 4%; height: 8%; }
+        /* Tierra */
+        [data-planet="Tierra"] { top: 45%; left: 30%; width: 5%; height: 9%; }
+        /* Marte */
+        [data-planet="Marte"] { top: 47%; left: 37%; width: 4%; height: 8%; }
+        /* Júpiter */
+        [data-planet="Júpiter"] { top: 40%; left: 47%; width: 10%; height: 20%; }
+        /* Saturno */
+        [data-planet="Saturno"] { top: 38%; left: 63%; width: 12%; height: 24%; }
+        /* Urano */
+        [data-planet="Urano"] { top: 42%; left: 79%; width: 7%; height: 14%; }
+        /* Neptuno */
+        [data-planet="Neptuno"] { top: 44%; left: 90%; width: 7%; height: 14%; }
+
 
         #labels-container {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             gap: 15px;
-            min-height: 50px;
-            padding: 10px;
-            border-top: 2px solid #45a29e;
-            width: 900px;
+            margin-top: 20px;
+            min-height: 80px; /* Para que no se mueva el layout */
+            width: 100%;
         }
 
-        .planet-label {
-            padding: 8px 15px;
-            background-color: #1f2833;
-            border: 1px solid #66fcf1;
-            border-radius: 5px;
+        .draggable-label {
+            background-color: #2b4360;
+            color: #e0e0e0;
+            padding: 12px 20px;
+            border-radius: 25px;
             cursor: grab;
-            user-select: none;
-            transition: transform 0.2s, background-color 0.2s;
-            z-index: 20; /* Asegura que estén por encima de todo al arrastrar */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            font-size: 1.1em;
+            font-weight: bold;
+            text-align: center;
+            min-width: 100px;
+            user-select: none; /* Evita que el texto se seleccione al arrastrar */
         }
 
-        .planet-label:active {
-            cursor: grabbing;
+        .draggable-label:hover {
+            background-color: #3a5c80;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .draggable-label.dragging {
+            opacity: 0.7;
+            transform: scale(1.05);
+            z-index: 1000;
         }
 
         .correct {
-            background-color: #008000; /* Color Verde */
+            background-color: #28a745; /* Verde para aciertos */
             color: white;
-            border: 1px solid #00ff00;
-            cursor: default !important;
-            box-shadow: none;
+            cursor: default;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: none; /* No se puede arrastrar de nuevo */
+        }
+
+        #reset-button {
+            margin-top: 30px;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            background-color: #f7b731;
+            color: #1a2c42;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        #reset-button:hover {
+            background-color: #ffcd3c;
+            transform: translateY(-2px);
+        }
+
+        /* Animación de acierto */
+        @keyframes pulse-green {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); background-color: #4CAF50; }
+            100% { transform: scale(1); background-color: #28a745; }
+        }
+        .correct.animate {
+            animation: pulse-green 0.5s ease-out;
         }
     </style>
 </head>
 <body>
-
-    <h1>🌎 Sistema Solar: Arrastra y Suelta</h1>
-    <div id="score-board">Aciertos: <span id="hits-count">0</span> / 8</div>
-
+    <h1>¡Etiqueta los Planetas del Sistema Solar!</h1>
     <div id="game-container">
-        <div class="planet-target" id="target-mercurio" data-planet="Mercurio"></div>
-        <div class="planet-target" id="target-venus" data-planet="Venus"></div>
-        <div class="planet-target" id="target-tierra" data-planet="Tierra"></div>
-        <div class="planet-target" id="target-marte" data-planet="Marte"></div>
-        <div class="planet-target" id="target-jupiter" data-planet="Júpiter"></div>
-        <div class="planet-target" id="target-saturno" data-planet="Saturno"></div>
-        <div class="planet-target" id="target-urano" data-planet="Urano"></div>
-        <div class="planet-target" id="target-neptuno" data-planet="Neptuno"></div>
-    </div>
+        <div id="score-display">Aciertos: <span id="hits-count">0</span> / 8</div>
 
-    <div id="labels-container">
-        <div class="planet-label" draggable="true" data-planet="Mercurio">Mercurio</div>
-        <div class="planet-label" draggable="true" data-planet="Venus">Venus</div>
-        <div class="planet-label" draggable="true" data-planet="Tierra">Tierra</div>
-        <div class="planet-label" draggable="true" data-planet="Marte">Marte</div>
-        <div class="planet-label" draggable="true" data-planet="Júpiter">Júpiter</div>
-        <div class="planet-label" draggable="true" data-planet="Saturno">Saturno</div>
-        <div class="planet-label" draggable="true" data-planet="Urano">Urano</div>
-        <div class="planet-label" draggable="true" data-planet="Neptuno">Neptuno</div>
+        <div id="solar-system-image-container">
+            <div class="drop-zone" data-target-planet="Mercurio"></div>
+            <div class="drop-zone" data-target-planet="Venus"></div>
+            <div class="drop-zone" data-target-planet="Tierra"></div>
+            <div class="drop-zone" data-target-planet="Marte"></div>
+            <div class="drop-zone" data-target-planet="Júpiter"></div>
+            <div class="drop-zone" data-target-planet="Saturno"></div>
+            <div class="drop-zone" data-target-planet="Urano"></div>
+            <div class="drop-zone" data-target-planet="Neptuno"></div>
+        </div>
+
+        <div id="labels-container">
+            </div>
+
+        <button id="reset-button">Reiniciar Juego</button>
     </div>
 
     <script>
-        // Lógica de JavaScript
-        let draggedItem = null;
+        const planets = ['Mercurio', 'Venus', 'Tierra', 'Marte', 'Júpiter', 'Saturno', 'Urano', 'Neptuno'];
+        let currentDraggable = null;
         let hits = 0;
-        const hitsCountElement = document.getElementById('hits-count');
+
         const labelsContainer = document.getElementById('labels-container');
-        const gameContainer = document.getElementById('game-container');
+        const scoreDisplay = document.getElementById('hits-count');
+        const dropZones = document.querySelectorAll('.drop-zone');
+        const resetButton = document.getElementById('reset-button');
 
-        // 1. Eventos de inicio de arrastre (dragstart) en las etiquetas
-        document.querySelectorAll('.planet-label').forEach(label => {
-            label.addEventListener('dragstart', (e) => {
-                draggedItem = label;
-                e.dataTransfer.setData('text/plain', label.dataset.planet);
-                // Opcional: añade una clase para indicar que se está arrastrando
-                setTimeout(() => label.style.opacity = '0.5', 0);
+        function initializeGame() {
+            labelsContainer.innerHTML = ''; // Limpiar etiquetas anteriores
+            hits = 0;
+            scoreDisplay.textContent = hits;
+
+            // Barajar los planetas para que las etiquetas no salgan en orden
+            const shuffledPlanets = [...planets].sort(() => Math.random() - 0.5);
+
+            shuffledPlanets.forEach(planetName => {
+                const label = document.createElement('div');
+                label.classList.add('draggable-label');
+                label.setAttribute('draggable', true);
+                label.textContent = planetName;
+                label.dataset.planetName = planetName; // Para identificar el planeta
+                labelsContainer.appendChild(label);
             });
 
-            label.addEventListener('dragend', () => {
-                // Restablece la opacidad al finalizar el arrastre (si no fue correcto)
-                if (!label.classList.contains('correct')) {
-                    label.style.opacity = '1';
-                }
-                draggedItem = null;
+            // Restablecer drop zones
+            dropZones.forEach(zone => {
+                zone.innerHTML = '';
+                zone.classList.remove('correct');
+                zone.style.backgroundColor = ''; // Limpia el color de fondo si se usó para debug
+                zone.style.border = ''; // Limpia el borde si se usó para debug
+                zone.style.color = 'transparent'; // Oculta el texto del placeholder
             });
-        });
-
-        // 2. Eventos de destino (Targets) en las áreas de la imagen
-        document.querySelectorAll('.planet-target').forEach(target => {
-            // Previene el comportamiento por defecto (necesario para soltar)
-            target.addEventListener('dragover', (e) => {
-                e.preventDefault();
-            });
-
-            // Lógica al soltar (drop)
-            target.addEventListener('drop', (e) => {
-                e.preventDefault();
-                if (!draggedItem) return;
-
-                const droppedPlanet = draggedItem.dataset.planet;
-                const targetPlanet = target.dataset.planet;
-
-                // **Verificación de acierto**
-                if (droppedPlanet === targetPlanet) {
-                    handleCorrectDrop(draggedItem, target);
-                } else {
-                    // Fallo: El elemento regresa a su posición original (ya que no se hace nada)
-                    draggedItem.style.opacity = '1'; // Quitar la opacidad de arrastre
-                    alert(`¡${droppedPlanet} no va ahí! Inténtalo de nuevo.`);
-                }
-            });
-        });
-
-        // Función para manejar la colocación correcta
-        function handleCorrectDrop(labelElement, targetElement) {
-            // 1. Fija el estilo del label a **verde** y lo hace inamovible
-            labelElement.classList.add('correct');
-            labelElement.setAttribute('draggable', 'false');
-
-            // 2. Posiciona el label sobre el target de forma absoluta en el game-container
-            const targetRect = targetElement.getBoundingClientRect();
-            const gameRect = gameContainer.getBoundingClientRect();
-
-            // Calcula la posición relativa al contenedor del juego
-            const newLeft = targetRect.left - gameRect.left + (targetRect.width / 2) - (labelElement.offsetWidth / 2);
-            const newTop = targetRect.top - gameRect.top + targetRect.height + 5; // Un poco debajo del target
-
-            labelElement.style.position = 'absolute';
-            labelElement.style.left = `${newLeft}px`;
-            labelElement.style.top = `${newTop}px`;
-
-            // 3. Mueve el label del contenedor inferior al contenedor del juego
-            gameContainer.appendChild(labelElement);
-
-            // 4. Incrementa el contador
-            hits++;
-            hitsCountElement.textContent = hits;
-
-            // 5. Opcional: Oculta el target para que no se pueda soltar otro label
-            targetElement.style.pointerEvents = 'none';
-
-            // 6. Fin del juego
-            if (hits === 8) {
-                setTimeout(() => {
-                    alert('¡Felicidades! Has completado el Sistema Solar correctamente.');
-                }, 100);
-            }
         }
-    </script>
 
+        // Eventos de arrastre
+        labelsContainer.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('draggable-label')) {
+                currentDraggable = e.target;
+                e.target.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', e.target.dataset.planetName); // Para compatibilidad
+            }
+        });
+
+        labelsContainer.addEventListener('dragend', (e) => {
+            if (e.target.classList.contains('draggable-label')) {
+                e.target.classList.remove('dragging');
+                currentDraggable = null;
+            }
+        });
+
+        // Eventos de soltar en las zonas
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Permite soltar
+                if (currentDraggable && !zone.classList.contains('correct')) {
+                    // Opcional: añadir un feedback visual a la zona al arrastrar encima
+                    // zone.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                }
+            });
+
+            zone.addEventListener('dragleave', (e) => {
+                // Opcional: quitar feedback visual
+                // zone.style.backgroundColor = '';
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                // zone.style.backgroundColor = ''; // Quitar feedback visual
+
+                if (currentDraggable && !zone.classList.contains('correct')) {
+                    const droppedPlanetName = currentDraggable.dataset.planetName;
+                    const targetPlanetName = zone.dataset.targetPlanet;
+
+                    if (droppedPlanetName === targetPlanetName) {
+                        // Correcto
+                        zone.appendChild(currentDraggable); // Mueve la etiqueta a la zona
+                        currentDraggable.style.position = 'static'; // La etiqueta se ajusta a la zona
+                        currentDraggable.classList.add('correct');
+                        currentDraggable.classList.add('animate'); // Activa la animación
+                        currentDraggable.setAttribute('draggable', false); // No se puede arrastrar de nuevo
+
+                        hits++;
+                        scoreDisplay.textContent = hits;
+
+                        // Quitar la clase animate después de la animación para futuras pulsaciones
+                        currentDraggable.addEventListener('animationend', () => {
+                            currentDraggable.classList.remove('animate');
+                        }, { once: true });
+
+                        if (hits === planets.length) {
+                            setTimeout(() => alert('¡Felicidades! Has completado el Sistema Solar.'), 300);
+                        }
+                    } else {
+                        // Incorrecto: la etiqueta regresa al contenedor original
+                        // currentDraggable.style.transform = ''; // Reset any transform
+                        // labelsContainer.appendChild(currentDraggable);
+                        // Para que regrese suavemente, es mejor quitarlo y que initializeGame lo ponga de nuevo.
+                        // Para este diseño, simplemente lo dejamos en la lista pero no se fija.
+                        // Lo mejor es que la etiqueta vuelva a su posición original en el contenedor de etiquetas
+                        // Sin embargo, para mantener la simplicidad y el estilo, si no es correcto,
+                        // simplemente el dragend lo dejará donde estaba o regresará si no hay drop.
+                        // En este caso, el arrastrable volverá a `labels-container` si no se hace un drop válido.
+                        // No necesitamos una acción explícita aquí para "devolverlo" ya que el drop fue inválido para esa zona.
+                    }
+                }
+            });
+        });
+
+        resetButton.addEventListener('click', initializeGame);
+
+        // Inicializar el juego al cargar la página
+        initializeGame();
+    </script>
 </body>
 </html>
